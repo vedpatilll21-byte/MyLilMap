@@ -523,7 +523,7 @@ export default function Profile() {
 
         ::-webkit-scrollbar-thumb {
 
-          background: #8b7191;
+          background: #693974f9;
 
           border-radius: 10px;
 
@@ -532,7 +532,7 @@ export default function Profile() {
 
         ::-webkit-scrollbar-thumb:hover {
 
-          background: #705477;
+          background: #311f35;
 
         }
 
