@@ -15,18 +15,18 @@ export default function EditProfile() {
   const [saving, setSaving] = useState(false);
 
 
-  // ================= LOAD PROFILE =================
-
+  // LOAD PROFILE
   useEffect(() => {
-    getProfile();
+    loadProfile();
   }, []);
 
 
-  const getProfile = async () => {
+  const loadProfile = async () => {
 
     const {
-      data: { user }
+      data: { user },
     } = await supabase.auth.getUser();
+
 
     if (!user) {
       navigate("/login");
@@ -36,28 +36,31 @@ export default function EditProfile() {
 
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select("username, email")
       .eq("id", user.id)
       .single();
 
 
     if (error) {
-      console.log(error.message);
-      alert("Could not load your profile.");
+
+      console.log(error);
+
+      alert("Could not load profile.");
+
       setLoading(false);
+
       return;
     }
 
 
-    setName(data.username || "");
-    setEmail(data.email || "");
+    setName(data?.username || "");
+    setEmail(data?.email || "");
 
     setLoading(false);
   };
 
 
-  // ================= SAVE PROFILE =================
-
+  // SAVE CHANGES
   const handleSave = async (e) => {
 
     e.preventDefault();
@@ -66,31 +69,33 @@ export default function EditProfile() {
 
 
     const {
-      data: { user }
+      data: { user },
     } = await supabase.auth.getUser();
 
 
     if (!user) {
+
       navigate("/login");
+
       return;
     }
 
 
-    // Update username and email in profiles table
-    const { error } = await supabase
+    // UPDATE PROFILE TABLE
+    const { error: profileError } = await supabase
       .from("profiles")
       .update({
-        username: name,
-        email: email
+        username: name.trim(),
+        email: email.trim(),
       })
       .eq("id", user.id);
 
 
-    if (error) {
+    if (profileError) {
 
-      console.log(error.message);
+      console.log(profileError);
 
-      alert("Failed to update profile.");
+      alert(profileError.message);
 
       setSaving(false);
 
@@ -98,16 +103,40 @@ export default function EditProfile() {
     }
 
 
-    // Change password only if user entered one
+    // UPDATE AUTH EMAIL IF EMAIL CHANGED
+    if (email.trim() !== user.email) {
+
+      const { error: emailError } =
+        await supabase.auth.updateUser({
+          email: email.trim(),
+        });
+
+
+      if (emailError) {
+
+        console.log(emailError);
+
+        alert(emailError.message);
+
+        setSaving(false);
+
+        return;
+      }
+    }
+
+
+    // UPDATE PASSWORD ONLY IF ENTERED
     if (password.trim() !== "") {
 
       const { error: passwordError } =
         await supabase.auth.updateUser({
-          password: password
+          password: password.trim(),
         });
 
 
       if (passwordError) {
+
+        console.log(passwordError);
 
         alert(passwordError.message);
 
@@ -126,34 +155,30 @@ export default function EditProfile() {
   };
 
 
-  // ================= LOADING =================
-
+  // LOADING
   if (loading) {
 
     return (
-      <div className="loading-page">
+      <div className="loading">
 
         <style>{`
 
-          .loading-page {
+          .loading {
+
             min-height: 100vh;
 
             display: flex;
-            align-items: center;
+
             justify-content: center;
 
-            background:
-              linear-gradient(
-                135deg,
-                #b79cbb,
-                #ded8df
-              );
+            align-items: center;
+
+            background: #e7e1e8;
 
             color: #4d3d52;
 
             font-family: Arial, sans-serif;
 
-            font-size: 16px;
           }
 
         `}</style>
@@ -166,9 +191,8 @@ export default function EditProfile() {
 
 
   return (
-    <div className="edit-page">
 
-      {/* YOUR EXISTING NAVBAR */}
+    <>
 
       <Navbar />
 
@@ -187,14 +211,9 @@ export default function EditProfile() {
 
         body {
           margin: 0;
-
-          background: #ded8df;
-
           font-family: Arial, sans-serif;
         }
 
-
-        /* ================= PAGE ================= */
 
         .edit-page {
 
@@ -205,21 +224,18 @@ export default function EditProfile() {
           padding-bottom: 80px;
 
           background:
+
             linear-gradient(
               135deg,
-              #b79cbb 0%,
-              #c9b9cc 45%,
-              #ded8df 100%
+              #b9a5bc,
+              #d8d1da,
+              #ece9ed
             );
-
-          color: #403648;
 
         }
 
 
-        /* ================= MAIN ================= */
-
-        .edit-main {
+        .edit-wrapper {
 
           width: 100%;
 
@@ -227,58 +243,39 @@ export default function EditProfile() {
 
           justify-content: center;
 
-          align-items: flex-start;
-
-          padding:
-            30px 20px 70px;
+          padding: 30px 20px;
 
         }
 
-
-        /* ================= CARD ================= */
 
         .edit-card {
 
-          width: 570px;
+          width: 560px;
 
           max-width: 100%;
 
-          padding:
-            32px 45px 42px;
+          background: rgba(255,255,255,.92);
 
-          background:
-            rgba(250, 247, 250, 0.92);
+          border: 1px solid rgba(255,255,255,.9);
 
-          border:
-            1px solid
-            rgba(255,255,255,0.85);
+          border-radius: 22px;
 
-          border-radius: 24px;
+          padding: 35px 42px 40px;
 
           box-shadow:
-            0 25px 60px
-            rgba(55,39,61,0.17);
-
-          backdrop-filter:
-            blur(18px);
-
-          -webkit-backdrop-filter:
-            blur(18px);
+            0 20px 50px
+            rgba(50,40,55,.16);
 
         }
 
 
-        /* ================= BACK ================= */
-
-        .back-button {
+        .back {
 
           border: none;
 
           background: transparent;
 
-          padding: 0;
-
-          color: #66586b;
+          color: #66576b;
 
           font-size: 14px;
 
@@ -286,85 +283,72 @@ export default function EditProfile() {
 
           cursor: pointer;
 
-          transition:
-            color .2s ease,
-            transform .2s ease;
+          padding: 0;
 
         }
 
 
-        .back-button:hover {
+        .back:hover {
 
-          color: #3f3145;
-
-          transform:
-            translateX(-4px);
+          color: #4b3850;
 
         }
 
 
-        /* ================= HEADER ================= */
-
-        .edit-header {
+        .heading {
 
           margin-top: 28px;
 
-          padding-bottom: 22px;
-
           margin-bottom: 30px;
 
-          border-bottom:
-            1px solid #dfd7e1;
+          padding-bottom: 22px;
+
+          border-bottom: 1px solid #e2dce4;
 
         }
 
 
-        .edit-header h1 {
+        .heading h1 {
 
           margin: 0;
 
-          color: #3e3344;
-
           font-family:
             Georgia,
-            "Times New Roman",
             serif;
 
-          font-size: 32px;
+          font-size: 34px;
 
-          font-weight: bold;
+          color: #3f3344;
 
         }
 
 
-        .edit-header p {
+        .heading p {
 
           margin:
             8px 0 0;
 
-          color: #7c717f;
+          color: #827785;
 
           font-size: 14px;
 
         }
 
 
-        /* ================= FORM ================= */
+        .field {
 
-        .form-group {
-
-          margin-bottom: 23px;
+          margin-bottom: 22px;
 
         }
 
 
-        .form-group label {
+        .field label {
 
           display: block;
 
-          margin-bottom: 9px;
+          margin-bottom: 8px;
 
-          color: #57445f;
+          color: #55465a;
 
           font-size: 14px;
 
@@ -373,92 +357,72 @@ export default function EditProfile() {
         }
 
 
-        .form-group input {
+        .field input {
 
           width: 100%;
 
-          height: 52px;
+          height: 50px;
 
-          padding:
-            0 16px;
+          padding: 0 15px;
 
-          border:
-            1px solid #d7cbd9;
+          border: 1px solid #d5cbd8;
 
-          border-radius: 10px;
+          border-radius: 9px;
 
-          outline: none;
+          background: #faf9fa;
 
-          background:
-            rgba(255,255,255,0.82);
-
-          color: #403648;
+          color: #3f3443;
 
           font-size: 15px;
 
-          transition:
-            border .2s ease,
-            box-shadow .2s ease,
-            background .2s ease;
+          outline: none;
+
+          transition: .2s;
 
         }
 
 
-        .form-group input:hover {
-
-          border-color:
-            #bba9be;
-
-        }
-
-
-        .form-group input:focus {
+        .field input:focus {
 
           background: white;
 
-          border-color:
-            #806589;
+          border-color: #806487;
 
           box-shadow:
             0 0 0 3px
-            rgba(128,101,137,.10);
+            rgba(128,100,135,.10);
 
         }
 
 
-        .password-info {
+        .hint {
 
-          margin:
-            7px 0 0;
+          margin-top: 7px;
 
-          color:
-            #918692;
+          color: #948a96;
 
-          font-size:
-            12px;
+          font-size: 12px;
 
         }
 
 
-        /* ================= BUTTONS ================= */
-
-        .button-row {
+        .actions {
 
           display: flex;
 
           gap: 12px;
 
-          margin-top: 34px;
+          margin-top: 32px;
 
         }
 
 
-        .cancel-button,
-        .save-button {
+        .cancel,
+        .save {
 
-          height: 50px;
+          height: 48px;
 
-          border-radius: 10px;
+          border-radius: 9px;
 
           font-size: 14px;
 
@@ -466,123 +430,65 @@ export default function EditProfile() {
 
           cursor: pointer;
 
-          transition:
-            .2s ease;
+          transition: .2s;
 
         }
 
 
-        .cancel-button {
+        .cancel {
 
-          flex: .8;
-
-          border:
-            1px solid #d2c6d4;
+          flex: 1;
 
           background: white;
 
-          color: #5e5063;
+          border: 1px solid #d2c7d5;
+
+          color: #5e5162;
 
         }
 
 
-        .cancel-button:hover {
+        .cancel:hover {
 
-          background:
-            #f4eff5;
-
-          transform:
-            translateY(-1px);
+          background: #f5f1f6;
 
         }
 
 
-        .save-button {
+        .save {
 
-          flex: 1.2;
+          flex: 1.5;
 
-          border:
-            1px solid #70527a;
+          background: #705578;
 
-          background:
-            #70527a;
+          border: 1px solid #705578;
 
           color: white;
 
           box-shadow:
-            0 7px 15px
-            rgba(76,53,83,.18);
+            0 7px 18px
+            rgba(80,60,85,.18);
 
         }
 
 
-        .save-button:hover {
+        .save:hover {
 
-          background:
-            #604568;
-
-          transform:
-            translateY(-1px);
-
-          box-shadow:
-            0 10px 20px
-            rgba(76,53,83,.23);
+          background: #604568;
 
         }
 
 
-        .save-button:disabled {
+        .save:disabled {
 
           opacity: .6;
 
-          cursor:
-            not-allowed;
-
-          transform:
-            none;
+          cursor: not-allowed;
 
         }
 
 
-        /* ================= SCROLLBAR ================= */
-
-        ::-webkit-scrollbar {
-
-          width: 9px;
-
-        }
-
-
-        ::-webkit-scrollbar-track {
-
-          background:
-            #c9b8cc;
-
-        }
-
-
-        ::-webkit-scrollbar-thumb {
-
-          background:
-            #8b7191;
-
-          border-radius:
-            10px;
-
-        }
-
-
-        ::-webkit-scrollbar-thumb:hover {
-
-          background:
-            #705477;
-
-        }
-
-
-        /* ================= TABLET ================= */
-
-        @media (max-width: 700px) {
+        @media(max-width:600px) {
 
           .edit-page {
 
@@ -591,10 +497,10 @@ export default function EditProfile() {
           }
 
 
-          .edit-main {
+          .edit-wrapper {
 
             padding:
-              20px 15px 60px;
+              20px 15px 50px;
 
           }
 
@@ -602,41 +508,33 @@ export default function EditProfile() {
           .edit-card {
 
             padding:
-              27px 24px 34px;
-
-            border-radius:
-              20px;
+              28px 22px 32px;
 
           }
 
 
-          .edit-header h1 {
+          .heading h1 {
 
-            font-size:
-              28px;
+            font-size: 29px;
 
           }
 
         }
 
 
-        /* ================= MOBILE ================= */
+        @media(max-width:430px) {
 
-        @media (max-width: 450px) {
+          .actions {
 
-          .button-row {
-
-            flex-direction:
-              column;
+            flex-direction: column;
 
           }
 
 
-          .cancel-button,
-          .save-button {
+          .cancel,
+          .save {
 
-            width:
-              100%;
+            width: 100%;
 
           }
 
@@ -645,143 +543,131 @@ export default function EditProfile() {
       `}</style>
 
 
-      {/* ================= EDIT CONTENT ================= */}
+      <div className="edit-page">
 
-      <main className="edit-main">
+        <div className="edit-wrapper">
 
-        <div className="edit-card">
-
-
-          {/* BACK BUTTON */}
-
-          <button
-            className="back-button"
-            onClick={() => navigate("/profile")}
-          >
-            ← Back to Profile
-          </button>
+          <div className="edit-card">
 
 
-          {/* HEADER */}
-
-          <div className="edit-header">
-
-            <h1>
-              Edit Profile
-            </h1>
-
-            <p>
-              Update your account information
-            </p>
-
-          </div>
+            <button
+              className="back"
+              onClick={() => navigate("/profile")}
+            >
+              ← Back to Profile
+            </button>
 
 
-          {/* FORM */}
+            <div className="heading">
 
-          <form onSubmit={handleSave}>
+              <h1>
+                Edit Profile
+              </h1>
 
-
-            {/* NAME */}
-
-            <div className="form-group">
-
-              <label>
-                Full Name
-              </label>
-
-              <input
-                type="text"
-                value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
-                placeholder="Enter your name"
-                required
-              />
-
-            </div>
-
-
-            {/* EMAIL */}
-
-            <div className="form-group">
-
-              <label>
-                Email Address
-              </label>
-
-              <input
-                type="email"
-                value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
-                placeholder="Enter your email"
-                required
-              />
-
-            </div>
-
-
-            {/* PASSWORD */}
-
-            <div className="form-group">
-
-              <label>
-                New Password
-              </label>
-
-              <input
-                type="password"
-                value={password}
-                onChange={(e) =>
-                  setPassword(e.target.value)
-                }
-                placeholder="Enter a new password"
-              />
-
-              <p className="password-info">
-                Leave this blank if you don't want to change your password.
+              <p>
+                Update your personal information
               </p>
 
             </div>
 
 
-            {/* BUTTONS */}
-
-            <div className="button-row">
+            <form onSubmit={handleSave}>
 
 
-              <button
-                type="button"
-                className="cancel-button"
-                onClick={() => navigate("/profile")}
-              >
-                Cancel
-              </button>
+              <div className="field">
+
+                <label>
+                  Full Name
+                </label>
+
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) =>
+                    setName(e.target.value)
+                  }
+                  placeholder="Enter your name"
+                  required
+                />
+
+              </div>
 
 
-              <button
-                type="submit"
-                className="save-button"
-                disabled={saving}
-              >
-                {saving
-                  ? "Saving..."
-                  : "Save Changes"
-                }
-              </button>
+              <div className="field">
+
+                <label>
+                  Email Address
+                </label>
+
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) =>
+                    setEmail(e.target.value)
+                  }
+                  placeholder="Enter your email"
+                  required
+                />
+
+              </div>
 
 
-            </div>
+              <div className="field">
 
-          </form>
+                <label>
+                  New Password
+                </label>
+
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) =>
+                    setPassword(e.target.value)
+                  }
+                  placeholder="Leave blank to keep current password"
+                />
+
+                <div className="hint">
+                  Only enter a password if you want to change it.
+                </div>
+
+              </div>
+
+
+              <div className="actions">
+
+                <button
+                  type="button"
+                  className="cancel"
+                  onClick={() => navigate("/profile")}
+                >
+                  Cancel
+                </button>
+
+
+                <button
+                  type="submit"
+                  className="save"
+                  disabled={saving}
+                >
+                  {saving
+                    ? "Saving..."
+                    : "Save Changes"
+                  }
+                </button>
+
+              </div>
+
+
+            </form>
+
+          </div>
 
         </div>
 
-      </main>
+      </div>
 
-    </div>
+    </>
+
   );
 }
